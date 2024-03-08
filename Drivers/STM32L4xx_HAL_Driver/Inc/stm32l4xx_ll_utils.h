@@ -38,6 +38,9 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+#if defined(UBINOS_PRESENT)
+#include <ubinos/bsp.h>
+#endif
 #include "stm32l4xx.h"
 
 /** @addtogroup STM32L4xx_LL_Driver
@@ -278,11 +281,14 @@ __STATIC_INLINE uint32_t LL_GetPackageType(void)
   */
 __STATIC_INLINE void LL_InitTick(uint32_t HCLKFrequency, uint32_t Ticks)
 {
+#if defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1)
+#else
   /* Configure the SysTick to have interrupt in 1ms time base */
   SysTick->LOAD  = (uint32_t)((HCLKFrequency / Ticks) - 1UL);  /* set reload register */
   SysTick->VAL   = 0UL;                                       /* Load the SysTick Counter Value */
   SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
                    SysTick_CTRL_ENABLE_Msk;                   /* Enable the Systick Timer */
+#endif /* defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1) */
 }
 
 void        LL_Init1msTick(uint32_t HCLKFrequency);

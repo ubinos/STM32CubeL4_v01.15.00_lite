@@ -35,6 +35,10 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l4xx_hal.h"
 
+#if defined(UBINOS_PRESENT)
+#include <ubinos.h>
+#endif /* defined(UBINOS_PRESENT) */
+
 /** @addtogroup STM32L4xx_HAL_Driver
   * @{
   */
@@ -153,6 +157,8 @@ HAL_StatusTypeDef HAL_Init(void)
 {
   HAL_StatusTypeDef  status = HAL_OK;
 
+#if defined(UBINOS_PRESENT)
+#else
   /* Configure Flash prefetch, Instruction cache, Data cache */
   /* Default configuration at reset is:                      */
   /* - Prefetch disabled                                     */
@@ -169,7 +175,12 @@ HAL_StatusTypeDef HAL_Init(void)
 #if (PREFETCH_ENABLE != 0)
   __HAL_FLASH_PREFETCH_BUFFER_ENABLE();
 #endif /* PREFETCH_ENABLE */
+#endif /* defined(UBINOS_PRESENT) */
 
+#if defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1)
+  /* Init the low level hardware */
+  HAL_MspInit();
+#else
   /* Set Interrupt Group Priority */
   HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
@@ -183,6 +194,7 @@ HAL_StatusTypeDef HAL_Init(void)
     /* Init the low level hardware */
     HAL_MspInit();
   }
+#endif /* defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1) */
 
   /* Return function status */
   return status;
@@ -260,6 +272,8 @@ __weak HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 {
   HAL_StatusTypeDef  status = HAL_OK;
 
+#if defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1)
+#else
   if (uwTickFreq != 0U)
   {
     /*Configure the SysTick to have interrupt in 1ms time basis*/
@@ -285,6 +299,7 @@ __weak HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
   {
     status = HAL_ERROR;
   }
+#endif /* defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1) */
 
   /* Return function status */
   return status;
@@ -325,7 +340,10 @@ __weak HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
   */
 __weak void HAL_IncTick(void)
 {
+#if defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1)
+#else
   uwTick += uwTickFreq;
+#endif /* defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1) */
 }
 
 /**
@@ -336,7 +354,11 @@ __weak void HAL_IncTick(void)
   */
 __weak uint32_t HAL_GetTick(void)
 {
+#if defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1)
+  return ubik_gettickcount().low;
+#else
   return uwTick;
+#endif /* defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1) */
 }
 
 /**
@@ -345,6 +367,11 @@ __weak uint32_t HAL_GetTick(void)
   */
 uint32_t HAL_GetTickPrio(void)
 {
+#if defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1)
+  // Not supported
+  ubi_assert(0);
+#else
+#endif /* defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1) */
   return uwTickPrio;
 }
 
@@ -355,6 +382,11 @@ uint32_t HAL_GetTickPrio(void)
   */
 HAL_StatusTypeDef HAL_SetTickFreq(uint32_t Freq)
 {
+#if defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1)
+  // Not supported
+  ubi_assert(0);
+  return HAL_ERROR;
+#else
   HAL_StatusTypeDef status  = HAL_OK;
   assert_param(IS_TICKFREQ(Freq));
 
@@ -369,6 +401,7 @@ HAL_StatusTypeDef HAL_SetTickFreq(uint32_t Freq)
   }
 
   return status;
+#endif /* defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1) */
 }
 
 /**
@@ -377,7 +410,11 @@ HAL_StatusTypeDef HAL_SetTickFreq(uint32_t Freq)
   */
 uint32_t HAL_GetTickFreq(void)
 {
+#if defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1)
+  return max(1, 1000 / ubik_gettickpersec());
+#else
   return uwTickFreq;
+#endif /* defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1) */
 }
 
 /**
@@ -399,7 +436,11 @@ __weak void HAL_Delay(uint32_t Delay)
   /* Add a period to guaranty minimum wait */
   if (wait < HAL_MAX_DELAY)
   {
+#if defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1)
+    wait += (uint32_t)(HAL_GetTickFreq());
+#else
     wait += (uint32_t)(uwTickFreq);
+#endif /* defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1) */
   }
 
   while((HAL_GetTick() - tickstart) < wait)
@@ -419,8 +460,13 @@ __weak void HAL_Delay(uint32_t Delay)
   */
 __weak void HAL_SuspendTick(void)
 {
+#if defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1)
+  // Not supported
+  ubi_assert(0);
+#else
   /* Disable SysTick Interrupt */
   SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
+#endif /* defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1) */
 }
 
 /**
@@ -435,8 +481,13 @@ __weak void HAL_SuspendTick(void)
   */
 __weak void HAL_ResumeTick(void)
 {
-  /* Enable SysTick Interrupt */
+ #if defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1)
+  // Not supported
+  ubi_assert(0);
+#else
+ /* Enable SysTick Interrupt */
   SysTick->CTRL  |= SysTick_CTRL_TICKINT_Msk;
+#endif /* defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1) */
 }
 
 /**

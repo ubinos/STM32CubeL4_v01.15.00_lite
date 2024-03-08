@@ -17,6 +17,9 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
+#if defined(UBINOS_PRESENT)
+#include <ubinos/bsp.h>
+#endif
 #include "stm32l4xx_ll_utils.h"
 #include "stm32l4xx_ll_rcc.h"
 #include "stm32l4xx_ll_system.h"
@@ -186,6 +189,9 @@ void LL_Init1msTick(uint32_t HCLKFrequency)
   */
 void LL_mDelay(uint32_t Delay)
 {
+#if defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1)
+  bsp_busywait(bsp_timemstobwc(Delay));
+#else
   __IO uint32_t  tmp = SysTick->CTRL;  /* Clear the COUNTFLAG first */
   uint32_t tmpDelay = Delay;
 
@@ -205,6 +211,7 @@ void LL_mDelay(uint32_t Delay)
       tmpDelay--;
     }
   }
+#endif /* defined(UBINOS_PRESENT) && (STM32CUBEL4__USE_HAL_WITH_UBINOS_TICK == 1) */
 }
 
 /**
